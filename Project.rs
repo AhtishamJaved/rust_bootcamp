@@ -20,6 +20,12 @@ struct InventoryManager {
 }
 
 impl InventoryManager {
+    fn new() -> Self {
+        InventoryManager {
+            inventory: HashMap::new(),
+        }
+    }
+
     fn add_product(&mut self, name: String, description: String, price: f64, quantity: u32) {
         let product = Product {
             name: name.clone(),
@@ -52,12 +58,55 @@ impl InventoryManager {
             );
         }
     }
+
+    fn search_product(&self, name: &str) {
+        if let Some(product) = self.inventory.get(name) {
+            println!("===== Product Details =====");
+            println!(
+                "Name: {}\nDescription: {}\nPrice: ${:.2}\nQuantity: {}",
+                product.name, product.description, product.price, product.quantity
+            );
+        } else {
+            println!("Product not found.");
+        }
+    }
+
+    fn view_low_stock_products(&self, threshold: u32) {
+        println!("===== Low Stock Products =====");
+        for (name, product) in &self.inventory {
+            if product.quantity < threshold {
+                println!(
+                    "{}: {} - ${:.2} - {} in stock",
+                    name, product.description, product.price, product.quantity
+                );
+            }
+        }
+    }
+
+    fn sort_products(&self, by: &str) {
+        let mut products: Vec<_> = self.inventory.values().collect();
+        match by {
+            "name" => products.sort_by_key(|p| p.name.clone()),
+            "price" => products.sort_by(|a, b| a.price.partial_cmp(&b.price).unwrap()),
+            "quantity" => products.sort_by(|a, b| a.quantity.cmp(&b.quantity)),
+            _ => {
+                println!("Invalid sorting option.");
+                return;
+            }
+        }
+        println!("===== Sorted Products =====");
+        for product in products {
+            println!(
+                "{}: {} - ${:.2} - {} in stock",
+                product.name, product.description, product.price, product.quantity
+            );
+        }
+    }
 }
 
 fn main() {
-    let mut inventory_manager = InventoryManager {
-        inventory: HashMap::new(),
-    };
+    let mut inventory_manager = InventoryManager::new();
+
 
     inventory_manager.add_product(
         "Apple".to_string(),
@@ -80,7 +129,10 @@ fn main() {
         println!("2. Edit an existing product");
         println!("3. Delete a product");
         println!("4. Generate an inventory report");
-        println!("5. Exit");
+        println!("5. Search for a product");
+        println!("6. View low stock products");
+        println!("7. Sort products");
+        println!("8. Exit");
 
         let mut choice = String::new();
         io::stdin()
@@ -160,10 +212,35 @@ fn main() {
                 inventory_manager.generate_report();
             }
             Ok(5) => {
+                let mut name = String::new();
+                println!("Enter the name of the product you want to search for:");
+                io::stdin()
+                    .read_line(&mut name)
+                    .expect("Failed to read line");
+                inventory_manager.search_product(name.trim());
+            }
+            Ok(6) => {
+                let mut threshold = String::new();
+                println!("Enter the threshold for low stock products:");
+                io::stdin()
+                    .read_line(&mut threshold)
+                    .expect("Failed to read line");
+                let threshold: u32 = threshold.trim().parse().unwrap();
+                inventory_manager.view_low_stock_products(threshold);
+            }
+            Ok(7) => {
+                let mut by = String::new();
+                println!("Sort products by (name/price/quantity):");
+                io::stdin()
+                    .read_line(&mut by)
+                    .expect("Failed to read line");
+                inventory_manager.sort_products(by.trim());
+            }
+            Ok(8) => {
                 println!("See you next time!");
                 break;
             }
-            _ => println!("Sorry, I didn't understand that."),
+            _ => println!("Invalid option. Please choose again."),
         }
     }
 }
